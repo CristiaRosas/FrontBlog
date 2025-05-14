@@ -1,0 +1,1 @@
+export {hanlePostComment} from "./useComment"
