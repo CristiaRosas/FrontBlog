@@ -1,1 +1,1 @@
-export {hanlePostComment} from "./useComment"
+export { handlePostComment } from './useComment'

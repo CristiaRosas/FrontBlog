@@ -1,8 +1,8 @@
-import axios from 'axios';
+import axios from "axios";
 
 const apiClient = axios.create({
-    baseURL: 'http://127.0.0.1:3006/blog/v1', 
-    timeout: 5000, 
+    baseURL: 'http://127.0.0.1:3006/blog/v1',
+    timeout: 5000
 })
 
 export const postComment = async (data) => {
@@ -11,7 +11,18 @@ export const postComment = async (data) => {
     } catch (e) {
         return {
             error: true,
-            message: e.message,
+            e
+        }
+    }
+}
+
+export const getcomments = async () => {
+    try {
+        return await apiClient.get('/comments/getComments')
+    } catch (e) {
+        return {
+            error: true,
+            e
         }
     }
 }
@@ -22,7 +33,7 @@ export const getCommentByPublication = async (title) => {
     } catch (e) {
         return {
             error: true,
-            message: e.message,
+            e
         }
     }
 }
@@ -33,7 +44,7 @@ export const getPublications = async () => {
     } catch (e) {
         return {
             error: true,
-            message: e.message,
+            e
         }
     }
 }
@@ -44,7 +55,7 @@ export const getPublicationsByCourseName = async (name) => {
     } catch (e) {
         return {
             error: true,
-            message: e.message,
-        }
+            e
+        };
     }
-}
+};
