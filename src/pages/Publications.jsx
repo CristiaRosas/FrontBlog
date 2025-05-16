@@ -1,66 +1,58 @@
 import { useEffect, useState } from "react";
-import { getcomments, getCommentByPublication } from "../services/api";
+import { getPublications, postComment, getPublicationsByCourseName } from "../services/api";
+import Lupa from "../assets/Lupa.png";
 
-const Comments = () => {
-  const [comments, setComments] = useState([]);
-  const [originalComments, setOriginalComments] = useState([]);
-  const [searchTitle, setSearchTitle] = useState("");
+const Publications = () => {
+  const [publications, setPublications] = useState([]);
+  const [selectedPublication, setSelectedPublication] = useState(null);
+  const [comment, setComment] = useState("");
+  const [author, setAuthor] = useState("");
+  const [searchCourse, setSearchCourse] = useState("");
   const [error, setError] = useState(null);
   const [loading, setLoading] = useState(true);
-  const [filter, setFilter] = useState("");
+  const [commentSuccess, setCommentSuccess] = useState(false);
 
-  const fetchComments = async (title = "") => {
+  const fetchPublications = async (query = "") => {
     setLoading(true);
     setError(null);
+    setSelectedPublication(null);
+    setCommentSuccess(false);
 
-    const res = title
-      ? await getCommentByPublication(title)
-      : await getcomments();
+    const res = query
+      ? await getPublicationsByCourseName(query)
+      : await getPublications();
 
-    const data = res?.data?.comments || [];
-
-    if (res.error || !data.length) {
-      setError(res.error ? "¡Error al cargar los comentarios!" : "¡No se encontraron comentarios para esta publicación!");
-      setComments([]);
-      setOriginalComments([]);
+    if (res.error || !res.data.publications.length) {
+      setError(res.error ? "¡Error al cargar las publicaciones!" : "¡No se encontraron publicaciones!");
+      setPublications([]);
     } else {
-      setOriginalComments(data);
-      setComments(filter ? sortComments(data, filter) : data);
+      setPublications(res.data.publications);
     }
-
     setLoading(false);
   };
 
-  const sortComments = (items, criterion) => {
-    return items.slice().sort((a, b) => {
-      switch (criterion) {
-        case "course":
-          return (a.publication?.course?.[0]?.name || "").localeCompare(
-            b.publication?.course?.[0]?.name || ""
-          );
-        case "date":
-          return new Date(b.createdAt) - new Date(a.createdAt);
-        case "author":
-          return a.author.localeCompare(b.author);
-        default:
-          return 0;
-      }
-    });
-  };
-
   useEffect(() => {
-    setComments(filter ? sortComments(originalComments, filter) : originalComments);
-  }, [filter]);
-
-  useEffect(() => {
-    fetchComments();
+    fetchPublications();
   }, []);
+
+  const handleSubmit = async (e) => {
+    e.preventDefault();
+    if (!comment.trim()) return;
+
+    const res = await postComment({ author, comment, publication: selectedPublication.title });
+    if (!res.error) {
+      setAuthor("");
+      setComment("");
+      setCommentSuccess(true);
+      fetchPublications(searchCourse);
+    }
+  };
 
   return (
     <div className="container py-5">
       <header className="text-center mb-5">
-        <h1 className="display-4 fw-bold">Comentarios</h1>
-        <p className="text-muted">Explora los comentarios de las publicaciones</p>
+        <h1 className="display-4 fw-bold">Explorar Publicaciones</h1>
+        <p className="text-muted">Encuentra y comenta las últimas publicaciones</p>
       </header>
 
       <div className="row mb-4">
@@ -68,24 +60,26 @@ const Comments = () => {
           <input
             type="text"
             className="form-control"
-            placeholder="Buscar comentarios por título de la publicación"
-            value={searchTitle}
-            onChange={(e) => setSearchTitle(e.target.value)}
-            onKeyDown={(e) => e.key === "Enter" && fetchComments(searchTitle.trim())}
+            placeholder="Buscar publicaciones por nombre del curso"
+            value={searchCourse}
+            onChange={(e) => setSearchCourse(e.target.value)}
+            onKeyDown={(e) => e.key === "Enter" && fetchPublications(searchCourse.trim())}
           />
         </div>
-        <div className="col-md-4 text-end">
+        <div className="col-md-4 text-end d-flex align-items-center justify-content-end">
           <button
-            className="btn btn-primary me-2"
-            onClick={() => fetchComments(searchTitle.trim())}
+            className="btn btn-light me-2 p-2"
+            style={{ border: "1px solid #ccc", background: "#fff" }}
+            onClick={() => fetchPublications(searchCourse.trim())}
+            title="Buscar"
           >
-            Buscar
+            <img src={Lupa} alt="Buscar" style={{ width: 24, height: 24 }} />
           </button>
           <button
             className="btn btn-secondary"
             onClick={() => {
-              setSearchTitle("");
-              fetchComments();
+              setSearchCourse("");
+              fetchPublications();
             }}
           >
             Mostrar Todo
@@ -94,28 +88,27 @@ const Comments = () => {
       </div>
 
       {error && <div className="alert alert-danger text-center">{error}</div>}
-      {loading && <div className="text-center">Cargando comentarios...</div>}
+      {loading && <div className="text-center">Cargando publicaciones...</div>}
 
-      {!loading && comments.length > 0 && (
+      {!loading && publications.length > 0 && (
         <div className="row">
-          {comments.map(({ _id, publication, author, comment, createdAt }) => (
-            <div key={_id} className="col-md-6 col-lg-4 mb-4">
-              <div className="card h-100 shadow-sm">
+          {publications.map((pub) => (
+            <div key={pub._id} className="col-md-6 col-lg-4 mb-4">
+              <div
+                className="card h-100 shadow-sm"
+                onClick={() => setSelectedPublication(pub)}
+                style={{ cursor: "pointer" }}
+              >
                 <div className="card-body">
-                  <h5 className="card-title text-primary">{publication?.title || "Sin título"}</h5>
-                  <p className="card-text text-muted">
-                    <strong>Curso:</strong> {publication?.course?.[0]?.name || "Sin curso"}
-                  </p>
+                  <h5 className="card-title text-primary">{pub.title}</h5>
                   <p className="card-text">
-                    <strong>Autor:</strong> {author || "Anónimo"}
+                    <strong>Curso:</strong> {pub.course?.name || "Sin curso asignado"}
                   </p>
-                  <p className="card-text">
-                    <strong>Comentario:</strong> {comment}
-                  </p>
+                  <p className="card-text">{pub.description}</p>
                   <p className="card-text">
                     <small className="text-muted">
                       <strong>Creado:</strong>{" "}
-                      {new Date(createdAt).toLocaleDateString("es-CL", {
+                      {new Date(pub.createdAt).toLocaleDateString("es-CL", {
                         day: "2-digit",
                         month: "long",
                         year: "numeric",
@@ -129,13 +122,51 @@ const Comments = () => {
         </div>
       )}
 
-      {!loading && comments.length === 0 && !error && (
-        <div className="alert alert-info text-center">
-          No hay comentarios disponibles.
+      {selectedPublication && (
+        <div className="modal fade show d-block" tabIndex="-1" role="dialog">
+          <div className="modal-dialog modal-dialog-centered" role="document">
+            <div className="modal-content">
+              <div className="modal-header">
+                <h5 className="modal-title">Comentar en: {selectedPublication.title}</h5>
+                <button
+                  type="button"
+                  className="btn-close"
+                  onClick={() => setSelectedPublication(null)}
+                ></button>
+              </div>
+              <div className="modal-body">
+                <input
+                  type="text"
+                  className="form-control mb-3"
+                  placeholder="Escribe el nombre o dejar vacío para anónimo"
+                  value={author}
+                  onChange={(e) => setAuthor(e.target.value)}
+                />
+                <textarea
+                  className="form-control mb-3"
+                  placeholder="Escribe tu comentario aquí..."
+                  rows="4"
+                  value={comment}
+                  onChange={(e) => setComment(e.target.value)}
+                />
+              </div>
+              <div className="modal-footer">
+                <button type="submit" className="btn btn-success" onClick={handleSubmit}>
+                  Enviar Comentario
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {commentSuccess && (
+        <div className="alert alert-success text-center mt-4">
+          ¡Comentario enviado exitosamente!
         </div>
       )}
     </div>
   );
 };
 
-export default Comments;
+export default Publications;

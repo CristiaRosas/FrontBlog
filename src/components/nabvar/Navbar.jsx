@@ -1,11 +1,16 @@
 import { Link } from "react-router-dom";
+import Home from "/src/assets/Home.jpg";
 
 const Navbar = () => {
     return (
         <nav className="navbar navbar-expand-lg bg-dark navbar-dark py-3 px-5 shadow-sm">
             <div className="container-fluid">
                 <Link className="navbar-brand text-uppercase fw-bold fs-4" to="/">
-                    Blog de Aprendizaje
+                    <img
+                        src={Home}
+                        alt="Inicio"
+                        style={{ width: 38, height: 38, objectFit: "contain" }}
+                    />
                 </Link>
                 <button
                     className="navbar-toggler border-0"

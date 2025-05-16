@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
 import { getcomments, getCommentByPublication } from "../services/api";
+import Lupa from "../assets/Lupa.png";
 
 const Comments = () => {
   const [comments, setComments] = useState([]);
@@ -35,8 +36,8 @@ const Comments = () => {
     return items.slice().sort((a, b) => {
       switch (criterion) {
         case "course":
-          return (a.publication?.course?.[0]?.name || "").localeCompare(
-            b.publication?.course?.[0]?.name || ""
+          return (a.publication?.course?.name || "").localeCompare(
+            b.publication?.course?.name || ""
           );
         case "date":
           return new Date(b.createdAt) - new Date(a.createdAt);
@@ -74,12 +75,14 @@ const Comments = () => {
             onKeyDown={(e) => e.key === "Enter" && fetchComments(searchTitle.trim())}
           />
         </div>
-        <div className="col-md-4 text-end">
+        <div className="col-md-4 text-end d-flex align-items-center justify-content-end">
           <button
-            className="btn btn-primary me-2"
+            className="btn btn-light me-2 p-2"
+            style={{ border: "1px solid #ccc", background: "#fff" }}
             onClick={() => fetchComments(searchTitle.trim())}
+            title="Buscar"
           >
-            Buscar
+            <img src={Lupa} alt="Buscar" style={{ width: 24, height: 24 }} />
           </button>
           <button
             className="btn btn-secondary"
@@ -104,7 +107,7 @@ const Comments = () => {
                 <div className="card-body">
                   <h5 className="card-title text-primary">{publication?.title || "Sin título"}</h5>
                   <p className="card-text text-muted">
-                    <strong>Curso:</strong> {publication?.course?.[0]?.name || "Sin curso"}
+                    <strong>Curso:</strong> {publication?.course?.name || "Sin curso"}
                   </p>
                   <p className="card-text">
                     <strong>Autor:</strong> {author || "Anónimo"}
