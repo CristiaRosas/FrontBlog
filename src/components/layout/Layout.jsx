@@ -1,4 +1,4 @@
-import Navbar from "../nabvar/Navbar";
+import Navbar from "../nabvar/Navbar"; // Corrección en la ruta
 import { Outlet } from "react-router-dom";
 
 const Layout = () => {

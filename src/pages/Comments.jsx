@@ -1,4 +1,20 @@
 import { useEffect, useState } from "react";
+import {
+  Box,
+  Button,
+  Card,
+  CardBody,
+  CardFooter,
+  CardHeader,
+  Flex,
+  Heading,
+  IconButton,
+  Text,
+  Avatar,
+  Image,
+  Spinner,
+} from "@chakra-ui/react";
+import { BsThreeDotsVertical } from "react-icons/bs";
 import { getcomments, getCommentByPublication } from "../services/api";
 import Lupa from "../assets/Lupa.png";
 
@@ -21,7 +37,11 @@ const Comments = () => {
     const data = res?.data?.comments || [];
 
     if (res.error || !data.length) {
-      setError(res.error ? "¡Error al cargar los comentarios!" : "¡No se encontraron comentarios para esta publicación!");
+      setError(
+        res.error
+          ? "¡Error al cargar los comentarios!"
+          : "¡No se encontraron comentarios para esta publicación!"
+      );
       setComments([]);
       setOriginalComments([]);
     } else {
@@ -58,86 +78,143 @@ const Comments = () => {
   }, []);
 
   return (
-    <div className="container py-5">
-      <header className="text-center mb-5">
-        <h1 className="display-4 fw-bold">Comentarios</h1>
-        <p className="text-muted">Explora los comentarios de las publicaciones</p>
-      </header>
+    <Box maxW="container.lg" mx="auto" py={10} px={4}>
+      <Box textAlign="center" mb={10}>
+        <Heading as="h1" size="2xl" fontWeight="bold" mb={2}>
+          Comentarios
+        </Heading>
+        <Text color="gray.500">Explora los comentarios de las publicaciones</Text>
+      </Box>
 
-      <div className="row mb-4">
-        <div className="col-md-8">
-          <input
-            type="text"
-            className="form-control"
-            placeholder="Buscar comentarios por título de la publicación"
-            value={searchTitle}
-            onChange={(e) => setSearchTitle(e.target.value)}
-            onKeyDown={(e) => e.key === "Enter" && fetchComments(searchTitle.trim())}
-          />
-        </div>
-        <div className="col-md-4 text-end d-flex align-items-center justify-content-end">
-          <button
-            className="btn btn-light me-2 p-2"
-            style={{ border: "1px solid #ccc", background: "#fff" }}
-            onClick={() => fetchComments(searchTitle.trim())}
-            title="Buscar"
-          >
-            <img src={Lupa} alt="Buscar" style={{ width: 24, height: 24 }} />
-          </button>
-          <button
-            className="btn btn-secondary"
-            onClick={() => {
-              setSearchTitle("");
-              fetchComments();
-            }}
-          >
-            Mostrar Todo
-          </button>
-        </div>
-      </div>
+      <Flex mb={8} gap={4} flexWrap="wrap" justifyContent="center">
+  <Box flex="1 1 300px" maxW="600px">
+    <input
+      type="text"
+      className="form-control"
+      placeholder="Buscar comentarios por título de la publicación"
+      value={searchTitle}
+      onChange={(e) => setSearchTitle(e.target.value)}
+      onKeyDown={(e) => e.key === "Enter" && fetchComments(searchTitle.trim())}
+      style={{
+        width: "100%",
+        padding: "8px 12px",
+        borderRadius: "6px",
+        border: "1px solid #ccc",
+      }}
+    />
+  </Box>
+  <Button
+    colorScheme="gray"
+    onClick={() => fetchComments(searchTitle.trim())}
+    aria-label="Buscar comentarios"
+    leftIcon={<Image src={Lupa} alt="Buscar" boxSize={5} />}
+  >
+    Buscar
+  </Button>
+  <Button
+    colorScheme="blue"
+    onClick={() => {
+      setSearchTitle("");
+      fetchComments();
+    }}
+  >
+    Mostrar Todo
+  </Button>
+</Flex>
 
-      {error && <div className="alert alert-danger text-center">{error}</div>}
-      {loading && <div className="text-center">Cargando comentarios...</div>}
+
+      {error && (
+        <Box
+          bg="red.100"
+          color="red.700"
+          p={4}
+          borderRadius="md"
+          textAlign="center"
+          mb={6}
+        >
+          {error}
+        </Box>
+      )}
+
+      {loading && (
+        <Flex justify="center" align="center" minH="100px">
+          <Spinner size="xl" />
+        </Flex>
+      )}
 
       {!loading && comments.length > 0 && (
-        <div className="row">
+        <Flex flexWrap="wrap" justify="center" gap={6}>
           {comments.map(({ _id, publication, author, comment, createdAt }) => (
-            <div key={_id} className="col-md-6 col-lg-4 mb-4">
-              <div className="card h-100 shadow-sm">
-                <div className="card-body">
-                  <h5 className="card-title text-primary">{publication?.title || "Sin título"}</h5>
-                  <p className="card-text text-muted">
-                    <strong>Curso:</strong> {publication?.course?.name || "Sin curso"}
-                  </p>
-                  <p className="card-text">
-                    <strong>Autor:</strong> {author || "Anónimo"}
-                  </p>
-                  <p className="card-text">
-                    <strong>Comentario:</strong> {comment}
-                  </p>
-                  <p className="card-text">
-                    <small className="text-muted">
-                      <strong>Creado:</strong>{" "}
-                      {new Date(createdAt).toLocaleDateString("es-CL", {
-                        day: "2-digit",
-                        month: "long",
-                        year: "numeric",
-                      })}
-                    </small>
-                  </p>
-                </div>
-              </div>
-            </div>
+            <Card
+              key={_id}
+              maxW="md"
+              boxShadow="md"
+              borderRadius="md"
+              cursor="default"
+              _hover={{ boxShadow: "lg" }}
+              flex="1 1 300px"
+            >
+              <CardHeader>
+                <Flex spacing="4" alignItems="center" justifyContent="space-between">
+                  <Flex flex="1" gap="4" alignItems="center" flexWrap="wrap">
+                    <Avatar
+                      name={author || publication?.title || "Anónimo"}
+                      src="https://bit.ly/sage-adebayo"
+                    />
+                    <Box>
+                      <Heading size="sm">{author || publication?.title || "Anónimo"}</Heading>
+                      <Text fontSize="sm" color="gray.500">
+                        {publication?.course?.name || "Sin curso"}
+                      </Text>
+                    </Box>
+                  </Flex>
+                  <IconButton
+                    variant="ghost"
+                    colorScheme="gray"
+                    aria-label="See menu"
+                    icon={<BsThreeDotsVertical />}
+                  />
+                </Flex>
+              </CardHeader>
+
+              <CardBody>
+                <Text>{comment}</Text>
+              </CardBody>
+
+              <Image
+                objectFit="cover"
+                src="https://images.unsplash.com/photo-1531403009284-440f080d1e12?ixlib=rb-4.0.3&auto=format&fit=crop&w=800&q=80"
+                alt="Imagen relacionada"
+                maxH="180px"
+                w="100%"
+                borderBottomRadius="md"
+              />
+
+              <Box px={4} pb={4} fontSize="sm" color="gray.500">
+                Creado:{" "}
+                {new Date(createdAt).toLocaleDateString("es-CL", {
+                  day: "2-digit",
+                  month: "long",
+                  year: "numeric",
+                })}
+              </Box>
+            </Card>
           ))}
-        </div>
+        </Flex>
       )}
 
       {!loading && comments.length === 0 && !error && (
-        <div className="alert alert-info text-center">
+        <Box
+          bg="blue.100"
+          color="blue.700"
+          p={4}
+          borderRadius="md"
+          textAlign="center"
+        >
           No hay comentarios disponibles.
-        </div>
+        </Box>
       )}
-    </div>
+    </Box>
   );
 };
 

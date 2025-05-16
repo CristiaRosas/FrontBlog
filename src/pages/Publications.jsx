@@ -1,6 +1,41 @@
-import { useEffect, useState } from "react";
-import { getPublications, postComment, getPublicationsByCourseName } from "../services/api";
+import {
+  Box,
+  Button,
+  Card,
+  CardBody,
+  CardFooter,
+  CardHeader,
+  Flex,
+  Heading,
+  IconButton,
+  Image,
+  Text,
+  Avatar,
+  Modal,
+  ModalOverlay,
+  ModalContent,
+  ModalHeader,
+  ModalBody,
+  ModalFooter,
+  ModalCloseButton,
+  Input,
+  Textarea,
+  Alert,
+  AlertIcon,
+  Spinner,
+  useDisclosure,
+} from "@chakra-ui/react";
 import Lupa from "../assets/Lupa.png";
+
+import { BiLike, BiChat, BiShare } from "react-icons/bi";
+import { BsThreeDotsVertical } from "react-icons/bs";
+
+import { useEffect, useState } from "react";
+import {
+  getPublications,
+  postComment,
+  getPublicationsByCourseName,
+} from "../services/api";
 
 const Publications = () => {
   const [publications, setPublications] = useState([]);
@@ -11,6 +46,8 @@ const Publications = () => {
   const [error, setError] = useState(null);
   const [loading, setLoading] = useState(true);
   const [commentSuccess, setCommentSuccess] = useState(false);
+
+  const { isOpen, onOpen, onClose } = useDisclosure();
 
   const fetchPublications = async (query = "") => {
     setLoading(true);
@@ -23,7 +60,11 @@ const Publications = () => {
       : await getPublications();
 
     if (res.error || !res.data.publications.length) {
-      setError(res.error ? "¡Error al cargar las publicaciones!" : "¡No se encontraron publicaciones!");
+      setError(
+        res.error
+          ? "¡Error al cargar las publicaciones!"
+          : "¡No se encontraron publicaciones!"
+      );
       setPublications([]);
     } else {
       setPublications(res.data.publications);
@@ -39,133 +80,183 @@ const Publications = () => {
     e.preventDefault();
     if (!comment.trim()) return;
 
-    const res = await postComment({ author, comment, publication: selectedPublication.title });
+    const res = await postComment({
+      author,
+      comment,
+      publication: selectedPublication.title,
+    });
     if (!res.error) {
       setAuthor("");
       setComment("");
       setCommentSuccess(true);
       fetchPublications(searchCourse);
+      onClose();
     }
   };
 
+  const openModal = (pub) => {
+    setSelectedPublication(pub);
+    onOpen();
+  };
+
   return (
-    <div className="container py-5">
-      <header className="text-center mb-5">
-        <h1 className="display-4 fw-bold">Explorar Publicaciones</h1>
-        <p className="text-muted">Encuentra y comenta las últimas publicaciones</p>
-      </header>
+    <Box maxW="container.lg" mx="auto" py={8} px={4}>
+      <Box textAlign="center" mb={8}>
+        <Heading size="xl" mb={2}>
+          Explorar Publicaciones
+        </Heading>
+        <Text color="gray.500">
+          Encuentra y comenta las últimas publicaciones
+        </Text>
+      </Box>
 
-      <div className="row mb-4">
-        <div className="col-md-8">
-          <input
-            type="text"
-            className="form-control"
-            placeholder="Buscar publicaciones por nombre del curso"
-            value={searchCourse}
-            onChange={(e) => setSearchCourse(e.target.value)}
-            onKeyDown={(e) => e.key === "Enter" && fetchPublications(searchCourse.trim())}
-          />
-        </div>
-        <div className="col-md-4 text-end d-flex align-items-center justify-content-end">
-          <button
-            className="btn btn-light me-2 p-2"
-            style={{ border: "1px solid #ccc", background: "#fff" }}
-            onClick={() => fetchPublications(searchCourse.trim())}
-            title="Buscar"
-          >
-            <img src={Lupa} alt="Buscar" style={{ width: 24, height: 24 }} />
-          </button>
-          <button
-            className="btn btn-secondary"
-            onClick={() => {
-              setSearchCourse("");
-              fetchPublications();
-            }}
-          >
-            Mostrar Todo
-          </button>
-        </div>
-      </div>
+      {/* Search */}
+      <Flex mb={6} gap={2} flexWrap="wrap" justify="center">
+        <Input
+          maxW="400px"
+          placeholder="Buscar publicaciones por nombre del curso"
+          value={searchCourse}
+          onChange={(e) => setSearchCourse(e.target.value)}
+          onKeyDown={(e) =>
+            e.key === "Enter" && fetchPublications(searchCourse.trim())
+          }
+        />
+        <Button
+          colorScheme="gray"
+          onClick={() => fetchPublications(searchCourse.trim())}
+          aria-label="Buscar publicaciones"
+          leftIcon={<Image src={Lupa} alt="Buscar" boxSize={5} />}
+        >
+          Buscar
+        </Button>
+        <Button
+          colorScheme="blue"
+          onClick={() => {
+            setSearchCourse("");
+            fetchPublications();
+          }}
+        >
+          Mostrar Todo
+        </Button>
+      </Flex>
 
-      {error && <div className="alert alert-danger text-center">{error}</div>}
-      {loading && <div className="text-center">Cargando publicaciones...</div>}
-
-      {!loading && publications.length > 0 && (
-        <div className="row">
-          {publications.map((pub) => (
-            <div key={pub._id} className="col-md-6 col-lg-4 mb-4">
-              <div
-                className="card h-100 shadow-sm"
-                onClick={() => setSelectedPublication(pub)}
-                style={{ cursor: "pointer" }}
-              >
-                <div className="card-body">
-                  <h5 className="card-title text-primary">{pub.title}</h5>
-                  <p className="card-text">
-                    <strong>Curso:</strong> {pub.course?.name || "Sin curso asignado"}
-                  </p>
-                  <p className="card-text">{pub.description}</p>
-                  <p className="card-text">
-                    <small className="text-muted">
-                      <strong>Creado:</strong>{" "}
-                      {new Date(pub.createdAt).toLocaleDateString("es-CL", {
-                        day: "2-digit",
-                        month: "long",
-                        year: "numeric",
-                      })}
-                    </small>
-                  </p>
-                </div>
-              </div>
-            </div>
-          ))}
-        </div>
+      {/* Alerts */}
+      {error && (
+        <Alert status="error" mb={6} justifyContent="center">
+          <AlertIcon />
+          {error}
+        </Alert>
       )}
-
-      {selectedPublication && (
-        <div className="modal fade show d-block" tabIndex="-1" role="dialog">
-          <div className="modal-dialog modal-dialog-centered" role="document">
-            <div className="modal-content">
-              <div className="modal-header">
-                <h5 className="modal-title">Comentar en: {selectedPublication.title}</h5>
-                <button
-                  type="button"
-                  className="btn-close"
-                  onClick={() => setSelectedPublication(null)}
-                ></button>
-              </div>
-              <div className="modal-body">
-                <input
-                  type="text"
-                  className="form-control mb-3"
-                  placeholder="Escribe el nombre o dejar vacío para anónimo"
-                  value={author}
-                  onChange={(e) => setAuthor(e.target.value)}
-                />
-                <textarea
-                  className="form-control mb-3"
-                  placeholder="Escribe tu comentario aquí..."
-                  rows="4"
-                  value={comment}
-                  onChange={(e) => setComment(e.target.value)}
-                />
-              </div>
-              <div className="modal-footer">
-                <button type="submit" className="btn btn-success" onClick={handleSubmit}>
-                  Enviar Comentario
-                </button>
-              </div>
-            </div>
-          </div>
-        </div>
-      )}
-
       {commentSuccess && (
-        <div className="alert alert-success text-center mt-4">
+        <Alert status="success" mb={6} justifyContent="center">
+          <AlertIcon />
           ¡Comentario enviado exitosamente!
-        </div>
+        </Alert>
       )}
-    </div>
+
+      {loading ? (
+        <Flex justify="center" mt={10}>
+          <Spinner size="xl" />
+        </Flex>
+      ) : (
+        <Flex flexWrap="wrap" gap={6} justify="center">
+          {publications.map((pub) => (
+            <Card
+              key={pub._id}
+              maxW="md"
+              cursor="pointer"
+              onClick={() => openModal(pub)}
+              boxShadow="md"
+              _hover={{ boxShadow: "lg" }}
+            >
+              <CardHeader>
+                <Flex
+                  spacing="4"
+                  alignItems="center"
+                  justifyContent="space-between"
+                  flexWrap="wrap"
+                >
+                  <Flex flex="1" gap="4" alignItems="center" flexWrap="wrap">
+                    <Avatar
+                      name={pub.author || pub.title}
+                      src={pub.avatarUrl || "https://bit.ly/sage-adebayo"}
+                    />
+                    <Box>
+                      <Heading size="sm">{pub.author || pub.title}</Heading>
+                      <Text fontSize="sm" color="gray.500">
+                        {pub.course?.name || "Curso no asignado"}
+                      </Text>
+                    </Box>
+                  </Flex>
+                  <IconButton
+                    variant="ghost"
+                    colorScheme="gray"
+                    aria-label="See menu"
+                    icon={<BsThreeDotsVertical />}
+                  />
+                </Flex>
+              </CardHeader>
+              <CardBody>
+                <Text noOfLines={3}>{pub.description}</Text>
+              </CardBody>
+              {pub.imageUrl && (
+                <Image
+                  objectFit="cover"
+                  src={pub.imageUrl}
+                  alt={pub.title}
+                  maxH="200px"
+                  width="100%"
+                />
+              )}
+              <CardFooter
+                justify="space-between"
+                flexWrap="wrap"
+                sx={{
+                  "& > button": {
+                    minW: "136px",
+                  },
+                }}
+              >
+                <Button flex="1" variant="ghost" leftIcon={<BiChat />}>
+                  Comment
+                </Button>
+              </CardFooter>
+            </Card>
+          ))}
+        </Flex>
+      )}
+
+      {/* Modal para comentar */}
+      <Modal isOpen={isOpen} onClose={onClose} isCentered size="lg">
+        <ModalOverlay />
+        <ModalContent>
+          <ModalHeader>Comentar en: {selectedPublication?.title}</ModalHeader>
+          <ModalCloseButton />
+          <ModalBody>
+            <Input
+              mb={4}
+              placeholder="Escribe el nombre o dejar vacío para anónimo"
+              value={author}
+              onChange={(e) => setAuthor(e.target.value)}
+            />
+            <Textarea
+              placeholder="Escribe tu comentario aquí..."
+              rows={4}
+              value={comment}
+              onChange={(e) => setComment(e.target.value)}
+            />
+          </ModalBody>
+          <ModalFooter>
+            <Button colorScheme="green" mr={3} onClick={handleSubmit}>
+              Enviar Comentario
+            </Button>
+            <Button variant="ghost" onClick={onClose}>
+              Cancelar
+            </Button>
+          </ModalFooter>
+        </ModalContent>
+      </Modal>
+    </Box>
   );
 };
 
