@@ -131,7 +131,7 @@ const Comments = () => {
           Comentarios
         </Heading>
         <Text color="gray.500">
-          Explora los comentarios de las publicaciones
+          Explora los comentarios de las publicaciones!
         </Text>
       </Box>
 
