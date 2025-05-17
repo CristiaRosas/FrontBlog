@@ -9,7 +9,7 @@ const routes = [
         children: [
             { path: "publications", element: <Publications /> },
             { path: "comments", element: <Comments /> },
-            { index: true, element: <Publications /> }, // por defecto va a publications
+            { index: true, element: <Publications /> }, 
         ],
     },
 ];

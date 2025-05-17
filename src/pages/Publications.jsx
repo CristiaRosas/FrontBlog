@@ -186,6 +186,14 @@ const Publications = () => {
                       <Text fontSize="sm" color="gray.500">
                         {pub.course?.name || "Curso no asignado"}
                       </Text>
+                      <Text fontSize="xs" color="gray.400">
+                        Creado:{" "}
+                        {new Date(pub.createdAt).toLocaleDateString("es-ES", {
+                          year: "numeric",
+                          month: "long",
+                          day: "numeric",
+                        })}
+                      </Text>
                     </Box>
                   </Flex>
                   <IconButton

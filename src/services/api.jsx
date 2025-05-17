@@ -59,3 +59,28 @@ export const getPublicationsByCourseName = async (name) => {
         };
     }
 };
+
+export const deleteComment = async (id) => {
+  try {
+    return await apiClient.delete(`/comments/deleteComment/${id}`);
+  } catch (e) {
+    return {
+      error: true,
+      e,
+    };
+  }
+};
+
+export const updateComment = async (id, newComment) => {
+  try {
+    return await apiClient.put(`/comments/putComment/${id}`, { comment: newComment });
+  } catch (e) {
+    return {
+      error: true,
+      e,
+    };
+  }
+};
+
+
+
