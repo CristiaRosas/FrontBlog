@@ -1,4 +1,3 @@
-import { useEffect, useState, useRef } from "react";
 import {
   Box,
   Button,
@@ -21,108 +20,39 @@ import {
   AlertDialogHeader,
   AlertDialogBody,
   AlertDialogFooter,
+  Select,
 } from "@chakra-ui/react";
 import { BsThreeDotsVertical } from "react-icons/bs";
-import {
-  getcomments,
-  getCommentByPublication,
-  deleteComment,
-  updateComment,
-} from "../services/api";
 import Lupa from "../assets/Lupa.png";
+import { useComments } from "../shared/hooks/useComment";
 
 const Comments = () => {
-  const [comments, setComments] = useState([]);
-  const [originalComments, setOriginalComments] = useState([]);
-  const [searchTitle, setSearchTitle] = useState("");
-  const [error, setError] = useState(null);
-  const [loading, setLoading] = useState(true);
-  const [filter, setFilter] = useState("");
-  const [editingId, setEditingId] = useState(null);
-  const [editText, setEditText] = useState("");
-  const [deleteId, setDeleteId] = useState(null);
+  const {
+    comments,
+    searchTitle,
+    setSearchTitle,
+    error,
+    loading,
+    filter,
+    setFilter,
+    editingId,
+    setEditingId,
+    editText,
+    setEditText,
+    fetchComments,
+    confirmDelete,
+    handleDelete,
+    handleEdit,
+    handleSaveEdit,
+    cancelRef,
+  } = useComments();
 
   const { isOpen, onOpen, onClose } = useDisclosure();
-  const cancelRef = useRef();
 
-  const fetchComments = async (title = "") => {
-    setLoading(true);
-    setError(null);
-
-    const res = title
-      ? await getCommentByPublication(title)
-      : await getcomments();
-
-    const data = res?.data?.comments || [];
-
-    if (res.error || !data.length) {
-      setError(
-        res.error
-          ? "¡Error al cargar los comentarios!"
-          : "¡No se encontraron comentarios para esta publicación!"
-      );
-      setComments([]);
-      setOriginalComments([]);
-    } else {
-      setOriginalComments(data);
-      setComments(filter ? sortComments(data, filter) : data);
-    }
-
-    setLoading(false);
-  };
-
-  const sortComments = (items, criterion) => {
-    return items.slice().sort((a, b) => {
-      switch (criterion) {
-        case "course":
-          return (a.publication?.course?.name || "").localeCompare(
-            b.publication?.course?.name || ""
-          );
-        case "date":
-          return new Date(b.createdAt) - new Date(a.createdAt);
-        case "author":
-          return a.author.localeCompare(b.author);
-        default:
-          return 0;
-      }
-    });
-  };
-
-  useEffect(() => {
-    setComments(
-      filter ? sortComments(originalComments, filter) : originalComments
-    );
-  }, [filter]);
-
-  useEffect(() => {
-    fetchComments();
-  }, []);
-
-  const confirmDelete = (id) => {
-    setDeleteId(id);
-    onOpen();
-  };
-
-  const handleDelete = async () => {
-    const res = await deleteComment(deleteId);
-    if (!res.error) fetchComments(searchTitle.trim());
-    onClose();
-  };
-
-  const handleEdit = (id, currentText) => {
-    setEditingId(id);
-    setEditText(currentText);
-  };
-
-  const handleSaveEdit = async (id) => {
-    if (!editText.trim()) return;
-    const res = await updateComment(id, editText.trim());
-    if (!res.error) {
-      setEditingId(null);
-      setEditText("");
-      fetchComments(searchTitle.trim());
-    }
-  };
+  // Extraemos títulos únicos de las publicaciones para el Select
+  const uniqueTitles = Array.from(
+    new Set(comments.map((c) => c.publication?.title).filter(Boolean))
+  );
 
   return (
     <Box maxW="container.lg" mx="auto" py={10} px={4}>
@@ -130,40 +60,57 @@ const Comments = () => {
         <Heading as="h1" size="2xl" fontWeight="bold" mb={2}>
           Comentarios
         </Heading>
-        <Text color="gray.500">
-          Explora los comentarios de las publicaciones!
-        </Text>
+        <Text color="gray.500">Explora los comentarios de las publicaciones!</Text>
       </Box>
 
-      <Flex mb={8} gap={4} flexWrap="wrap" justifyContent="center">
-        <Box flex="1 1 300px" maxW="600px">
-          <input
-            type="text"
-            className="form-control"
-            placeholder="Buscar comentarios por título de la publicación"
-            value={searchTitle}
-            onChange={(e) => setSearchTitle(e.target.value)}
-            onKeyDown={(e) =>
-              e.key === "Enter" && fetchComments(searchTitle.trim())
-            }
-            style={{
-              width: "100%",
-              padding: "8px 12px",
-              borderRadius: "6px",
-              border: "1px solid #ccc",
-            }}
-          />
-        </Box>
+      {/* Barra de búsqueda con Select */}
+      <Flex
+        mb={8}
+        gap={4}
+        flexWrap="wrap"
+        justifyContent="center"
+        alignItems="center"
+        direction={{ base: "column", md: "row" }}
+      >
+        <Select
+          placeholder="Selecciona un título para buscar"
+          maxW={{ base: "100%", md: "400px" }}
+          value={searchTitle}
+          onChange={(e) => setSearchTitle(e.target.value)}
+          boxShadow="md"
+          borderRadius="md"
+          bg="white"
+          _focus={{ boxShadow: "outline" }}
+          transition="box-shadow 0.2s ease"
+        >
+          {uniqueTitles.map((title, i) => (
+            <option key={i} value={title}>
+              {title}
+            </option>
+          ))}
+        </Select>
+
         <Button
           colorScheme="gray"
+          borderRadius="full"
+          px={6}
+          boxShadow="lg"
+          transition="all 0.2s ease"
+          _hover={{ boxShadow: "xl", transform: "scale(1.05)" }}
           onClick={() => fetchComments(searchTitle.trim())}
-          aria-label="Buscar comentarios"
           leftIcon={<Image src={Lupa} alt="Buscar" boxSize={5} />}
+          aria-label="Buscar comentarios"
         >
           Buscar
         </Button>
+
         <Button
           colorScheme="blue"
+          borderRadius="full"
+          px={6}
+          boxShadow="lg"
+          transition="all 0.2s ease"
+          _hover={{ boxShadow: "xl", transform: "scale(1.05)" }}
           onClick={() => {
             setSearchTitle("");
             fetchComments();
@@ -181,6 +128,7 @@ const Comments = () => {
           borderRadius="md"
           textAlign="center"
           mb={6}
+          boxShadow="md"
         >
           {error}
         </Box>
@@ -203,6 +151,7 @@ const Comments = () => {
               cursor="default"
               _hover={{ boxShadow: "lg" }}
               flex="1 1 300px"
+              bg="white"
             >
               <CardHeader>
                 <Flex
@@ -277,7 +226,7 @@ const Comments = () => {
                 <Button
                   colorScheme="red"
                   size="sm"
-                  onClick={() => confirmDelete(_id)}
+                  onClick={() => confirmDelete(_id, onOpen)}
                 >
                   Eliminar
                 </Button>
@@ -312,17 +261,14 @@ const Comments = () => {
           p={4}
           borderRadius="md"
           textAlign="center"
+          boxShadow="md"
         >
           No hay comentarios disponibles.
         </Box>
       )}
 
       {/* Confirmación de eliminación */}
-      <AlertDialog
-        isOpen={isOpen}
-        leastDestructiveRef={cancelRef}
-        onClose={onClose}
-      >
+      <AlertDialog isOpen={isOpen} leastDestructiveRef={cancelRef} onClose={onClose}>
         <AlertDialogOverlay>
           <AlertDialogContent>
             <AlertDialogHeader fontSize="lg" fontWeight="bold">
@@ -330,15 +276,15 @@ const Comments = () => {
             </AlertDialogHeader>
 
             <AlertDialogBody>
-              ¿Estás seguro que deseas eliminar este comentario? Esta acción no
-              se puede deshacer.
+              ¿Estás seguro que deseas eliminar este comentario? Esta acción no se
+              puede deshacer.
             </AlertDialogBody>
 
             <AlertDialogFooter>
               <Button ref={cancelRef} onClick={onClose}>
                 Cancelar
               </Button>
-              <Button colorScheme="red" onClick={handleDelete} ml={3}>
+              <Button colorScheme="red" onClick={() => handleDelete(onClose)} ml={3}>
                 Eliminar
               </Button>
             </AlertDialogFooter>

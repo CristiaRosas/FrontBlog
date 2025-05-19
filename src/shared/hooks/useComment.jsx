@@ -1,30 +1,123 @@
-import { useState } from 'react';
-import { postComment, getCommentByPublication } from '../../services/api';
+import { useState, useEffect, useRef } from "react";
+import {
+  getcomments,
+  getCommentByPublication,
+  deleteComment,
+  updateComment,
+} from "../../services/api";
 
-export const useComment = () => {
+export const useComments = () => {
+  const [comments, setComments] = useState([]);
+  const [originalComments, setOriginalComments] = useState([]);
+  const [searchTitle, setSearchTitle] = useState("");
+  const [error, setError] = useState(null);
+  const [loading, setLoading] = useState(true);
+  const [filter, setFilter] = useState("");
+  const [editingId, setEditingId] = useState(null);
+  const [editText, setEditText] = useState("");
+  const [deleteId, setDeleteId] = useState(null);
 
-    const [comments, setComments] = useState([]);
+  const cancelRef = useRef();
 
-    const handlePostComment = async (data) => {
-        try {
-            await postComment(data);
+  const fetchComments = async (title = "") => {
+    setLoading(true);
+    setError(null);
 
-        } catch (error) {
-            console.error("Error al crear comentario:", error.response?.data || error.message);
+    const res = title
+      ? await getCommentByPublication(title)
+      : await getcomments();
 
-        }
-    };
+    const data = res?.data?.comments || [];
 
-    const handleGetCommentByPublication = async (title) => {
-        try {
-            const res = await getCommentByPublication(title);
-            console.log(res);
+    if (res.error || !data.length) {
+      setError(
+        res.error
+          ? "¡Error al cargar los comentarios!"
+          : "¡No se encontraron comentarios para esta publicación!"
+      );
+      setComments([]);
+      setOriginalComments([]);
+    } else {
+      setOriginalComments(data);
+      setComments(filter ? sortComments(data, filter) : data);
+    }
 
-            setComments(res.data?.comments || []);
-        } catch (error) {
-            console.error("Error al obtener comentarios:", error);
-        }
-    };
+    setLoading(false);
+  };
 
-    return { comments, handlePostComment, handleGetCommentByPublication };
-}
+  const sortComments = (items, criterion) => {
+    return items.slice().sort((a, b) => {
+      switch (criterion) {
+        case "course":
+          return (a.publication?.course?.name || "").localeCompare(
+            b.publication?.course?.name || ""
+          );
+        case "date":
+          return new Date(b.createdAt) - new Date(a.createdAt);
+        case "author":
+          return a.author.localeCompare(b.author);
+        default:
+          return 0;
+      }
+    });
+  };
+
+  useEffect(() => {
+    setComments(
+      filter ? sortComments(originalComments, filter) : originalComments
+    );
+  }, [filter]);
+
+  useEffect(() => {
+    fetchComments();
+  }, []);
+
+  const confirmDelete = (id, onOpen) => {
+    setDeleteId(id);
+    onOpen();
+  };
+
+  const handleDelete = async (onClose) => {
+    const res = await deleteComment(deleteId);
+    if (!res.error) fetchComments(searchTitle.trim());
+    onClose();
+  };
+
+  const handleEdit = (id, currentText) => {
+    setEditingId(id);
+    setEditText(currentText);
+  };
+
+  const handleSaveEdit = async (id) => {
+    if (!editText.trim()) return;
+    const res = await updateComment(id, editText.trim());
+    if (!res.error) {
+      setEditingId(null);
+      setEditText("");
+      fetchComments(searchTitle.trim());
+    }
+  };
+
+  return {
+    comments,
+    originalComments,
+    searchTitle,
+    setSearchTitle,
+    error,
+    loading,
+    filter,
+    setFilter,
+    editingId,
+    setEditingId,
+    editText,
+    setEditText,
+    deleteId,
+    setDeleteId,
+    cancelRef,
+    fetchComments,
+    confirmDelete,
+    handleDelete,
+    handleEdit,
+    handleSaveEdit,
+  };
+};

@@ -18,86 +18,48 @@ import {
   ModalBody,
   ModalFooter,
   ModalCloseButton,
-  Input,
+  Select,
   Textarea,
   Alert,
   AlertIcon,
   Spinner,
   useDisclosure,
+  Input,
 } from "@chakra-ui/react";
 import Lupa from "../assets/Lupa.png";
-
 import { BiLike, BiChat, BiShare } from "react-icons/bi";
 import { BsThreeDotsVertical } from "react-icons/bs";
-
-import { useEffect, useState } from "react";
-import {
-  getPublications,
-  postComment,
-  getPublicationsByCourseName,
-} from "../services/api";
+import { usePublications } from "../shared/hooks/usePublications";
 
 const Publications = () => {
-  const [publications, setPublications] = useState([]);
-  const [selectedPublication, setSelectedPublication] = useState(null);
-  const [comment, setComment] = useState("");
-  const [author, setAuthor] = useState("");
-  const [searchCourse, setSearchCourse] = useState("");
-  const [error, setError] = useState(null);
-  const [loading, setLoading] = useState(true);
-  const [commentSuccess, setCommentSuccess] = useState(false);
+  const {
+    publications,
+    selectedPublication,
+    setSelectedPublication,
+    comment,
+    setComment,
+    author,
+    setAuthor,
+    searchCourse,
+    setSearchCourse,
+    error,
+    loading,
+    commentSuccess,
+    setCommentSuccess,
+    fetchPublications,
+    handleSubmit,
+    openModal,
+  } = usePublications();
 
   const { isOpen, onOpen, onClose } = useDisclosure();
 
-  const fetchPublications = async (query = "") => {
-    setLoading(true);
-    setError(null);
-    setSelectedPublication(null);
-    setCommentSuccess(false);
-
-    const res = query
-      ? await getPublicationsByCourseName(query)
-      : await getPublications();
-
-    if (res.error || !res.data.publications.length) {
-      setError(
-        res.error
-          ? "¡Error al cargar las publicaciones!"
-          : "¡No se encontraron publicaciones!"
-      );
-      setPublications([]);
-    } else {
-      setPublications(res.data.publications);
-    }
-    setLoading(false);
-  };
-
-  useEffect(() => {
-    fetchPublications();
-  }, []);
-
-  const handleSubmit = async (e) => {
-    e.preventDefault();
-    if (!comment.trim()) return;
-
-    const res = await postComment({
-      author,
-      comment,
-      publication: selectedPublication.title,
-    });
-    if (!res.error) {
-      setAuthor("");
-      setComment("");
-      setCommentSuccess(true);
-      fetchPublications(searchCourse);
-      onClose();
-    }
-  };
-
-  const openModal = (pub) => {
-    setSelectedPublication(pub);
-    onOpen();
-  };
+  const uniqueCourses = Array.from(
+    new Set(
+      publications
+        .map((pub) => pub.course?.name)
+        .filter((courseName) => courseName && courseName.trim() !== "")
+    )
+  );
 
   return (
     <Box maxW="container.lg" mx="auto" py={8} px={4}>
@@ -105,32 +67,65 @@ const Publications = () => {
         <Heading size="xl" mb={2}>
           Explorar Publicaciones
         </Heading>
-        <Text color="gray.500">
-          Encuentra y comenta las últimas publicaciones
-        </Text>
+        <Text color="gray.500">Encuentra y comenta las últimas publicaciones</Text>
       </Box>
 
-      {/* Search */}
-      <Flex mb={6} gap={2} flexWrap="wrap" justify="center">
-        <Input
-          maxW="400px"
-          placeholder="Buscar publicaciones por nombre del curso"
-          value={searchCourse}
-          onChange={(e) => setSearchCourse(e.target.value)}
-          onKeyDown={(e) =>
-            e.key === "Enter" && fetchPublications(searchCourse.trim())
-          }
-        />
+      <Flex
+        mb={10}
+        gap={4}
+        flexWrap="wrap"
+        justify="center"
+        align="center"
+        direction={{ base: "column", md: "row" }}
+      >
+        <Flex
+          align="center"
+          bg="white"
+          borderRadius="full"
+          boxShadow="lg"
+          px={4}
+          py={2}
+          w={{ base: "100%", md: "400px" }}
+          transition="all 0.2s ease"
+          _hover={{ boxShadow: "xl" }}
+        >
+          <Image src={Lupa} alt="Buscar" boxSize={5} mr={2} />
+          <Select
+            variant="unstyled"
+            placeholder="Selecciona un curso para buscar"
+            value={searchCourse}
+            onChange={(e) => setSearchCourse(e.target.value)}
+            w="100%"
+            _focus={{ boxShadow: "none" }}
+          >
+            {uniqueCourses.map((course, idx) => (
+              <option key={idx} value={course}>
+                {course}
+              </option>
+            ))}
+          </Select>
+        </Flex>
+
         <Button
-          colorScheme="gray"
+          colorScheme="blue"
+          borderRadius="full"
+          px={6}
+          boxShadow="lg"
+          transition="all 0.2s ease"
+          _hover={{ boxShadow: "xl", transform: "scale(1.05)" }}
           onClick={() => fetchPublications(searchCourse.trim())}
-          aria-label="Buscar publicaciones"
-          leftIcon={<Image src={Lupa} alt="Buscar" boxSize={5} />}
         >
           Buscar
         </Button>
+
         <Button
-          colorScheme="blue"
+          variant="outline"
+          colorScheme="gray"
+          borderRadius="full"
+          px={6}
+          boxShadow="lg"
+          transition="all 0.2s ease"
+          _hover={{ boxShadow: "xl", transform: "scale(1.05)" }}
           onClick={() => {
             setSearchCourse("");
             fetchPublications();
@@ -140,7 +135,6 @@ const Publications = () => {
         </Button>
       </Flex>
 
-      {/* Alerts */}
       {error && (
         <Alert status="error" mb={6} justifyContent="center">
           <AlertIcon />
@@ -165,7 +159,7 @@ const Publications = () => {
               key={pub._id}
               maxW="md"
               cursor="pointer"
-              onClick={() => openModal(pub)}
+              onClick={() => openModal(pub, onOpen)}
               boxShadow="md"
               _hover={{ boxShadow: "lg" }}
             >
@@ -234,7 +228,6 @@ const Publications = () => {
         </Flex>
       )}
 
-      {/* Modal para comentar */}
       <Modal isOpen={isOpen} onClose={onClose} isCentered size="lg">
         <ModalOverlay />
         <ModalContent>
@@ -255,7 +248,11 @@ const Publications = () => {
             />
           </ModalBody>
           <ModalFooter>
-            <Button colorScheme="green" mr={3} onClick={handleSubmit}>
+            <Button
+              colorScheme="green"
+              mr={3}
+              onClick={(e) => handleSubmit(e, onClose)}
+            >
               Enviar Comentario
             </Button>
             <Button variant="ghost" onClick={onClose}>
